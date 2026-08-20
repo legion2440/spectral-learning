@@ -157,15 +157,17 @@ def plot_embedding_2d(
     *,
     title: str,
     label_name: str | None = None,
+    x_label: str = "Component 1",
+    y_label: str = "Component 2",
 ) -> Path:
-    """Plot the first two reduced dimensions colored by target or cluster labels."""
+    """Plot a two-dimensional embedding colored by target or cluster labels."""
     matrix = np.asarray(reduced, dtype=float)
     if matrix.ndim != 2 or matrix.shape[1] < 2:
         raise ValueError("At least two reduced dimensions are required")
     fig, ax = plt.subplots(figsize=(8, 6))
     scatter = ax.scatter(matrix[:, 0], matrix[:, 1], c=np.asarray(labels), s=18, alpha=0.75)
-    ax.set_xlabel("Component 1")
-    ax.set_ylabel("Component 2")
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
     ax.set_title(title)
     fig.colorbar(scatter, ax=ax, label=_embedding_label(title, label_name))
     return _finish(fig, path)
