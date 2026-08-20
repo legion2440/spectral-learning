@@ -8,7 +8,11 @@ from typing import Self
 
 import numpy as np
 
-from utils.matrix_operations import as_float_matrix, choose_component_count
+from utils.matrix_operations import (
+    as_float_matrix,
+    canonicalize_component_signs,
+    choose_component_count,
+)
 
 
 class SVDFromScratch:
@@ -51,7 +55,7 @@ class SVDFromScratch:
         self.n_samples_seen_ = n_samples
         self.n_features_in_ = n_features
         self.n_components_ = count
-        self.components_ = vt[:count]
+        self.components_ = canonicalize_component_signs(vt[:count])
         self.singular_values_ = singular_values[:count]
         self.all_singular_values_ = singular_values
         self.explained_variance_ = variances[:count]
