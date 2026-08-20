@@ -65,7 +65,7 @@ def _snr(reference: np.ndarray, estimate: np.ndarray) -> float:
 def run_signal_denoising(
     output_dir: str | Path,
     *,
-    rank: int = 2,
+    rank: int = 4,
     samples: int = 1000,
     noise_std: float = 0.45,
     random_state: int = 42,
