@@ -12,6 +12,30 @@ import numpy as np
 from utils.artifacts import write_json
 
 
+def _normalize_loaded_image(image: np.ndarray) -> np.ndarray:
+    """Convert an image loaded by Matplotlib to floating point in the [0, 1] range."""
+    array = np.asarray(image)
+    if np.issubdtype(array.dtype, np.integer):
+        dtype_max = float(np.iinfo(array.dtype).max)
+        if dtype_max <= 0.0:
+            raise ValueError("Image integer dtype has an invalid numeric range")
+        return array.astype(float) / dtype_max
+
+    normalized = np.asarray(array, dtype=float)
+    if not np.isfinite(normalized).all():
+        raise ValueError("Image contains NaN or infinite values")
+    if normalized.size == 0:
+        raise ValueError("Image is empty")
+
+    data_min = float(np.min(normalized))
+    data_max = float(np.max(normalized))
+    if data_min < 0.0 or data_max > 1.0:
+        raise ValueError(
+            "Floating-point image values must already be normalized to the [0, 1] range"
+        )
+    return normalized
+
+
 def compress_image_svd(image: np.ndarray, rank: int) -> tuple[np.ndarray, dict[str, float]]:
     """Compress each image channel with a rank-k SVD reconstruction."""
     array = np.asarray(image, dtype=float)
@@ -41,7 +65,11 @@ def compress_image_svd(image: np.ndarray, rank: int) -> tuple[np.ndarray, dict[s
     reconstructed = np.clip(reconstructed, data_min, data_max)
     mse = float(np.mean((array - reconstructed) ** 2))
     data_range = data_max - data_min
-    psnr = float("inf") if mse == 0 else float(20.0 * np.log10(data_range / np.sqrt(mse)))
+    psnr = (
+        float("inf")
+        if mse == 0
+        else float(20.0 * np.log10(data_range / np.sqrt(mse)))
+    )
     original_values = height * width * channels
     compressed_values = rank * (height + width + 1) * channels
     metrics = {
@@ -65,12 +93,16 @@ def run_image_compression(
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
 
-    image = mpimg.imread(source)
+    image = _normalize_loaded_image(mpimg.imread(source))
     results: list[dict[str, float]] = []
     for rank in ranks:
         reconstructed, metrics = compress_image_svd(image, int(rank))
         target = output / f"rank_{int(rank)}.png"
-        plt.imsave(target, reconstructed, cmap="gray" if reconstructed.ndim == 2 else None)
+        plt.imsave(
+            target,
+            np.clip(reconstructed, 0.0, 1.0),
+            cmap="gray" if reconstructed.ndim == 2 else None,
+        )
         results.append(metrics)
 
     write_json(output / "metrics.json", {"input": str(source), "results": results})
