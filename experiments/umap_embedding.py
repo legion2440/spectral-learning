@@ -59,6 +59,7 @@ def run_umap_embedding(
         metric="euclidean",
         random_state=random_state,
         transform_seed=random_state,
+        n_jobs=1,
     )
     embedding = np.asarray(model.fit_transform(sample), dtype=float)
 
