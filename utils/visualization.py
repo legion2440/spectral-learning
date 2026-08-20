@@ -106,15 +106,21 @@ def plot_cumulative_variance(
     return _finish(fig, path)
 
 
+def _embedding_label(title: str, label_name: str | None) -> str:
+    if label_name is not None:
+        return label_name
+    return "Cluster" if "cluster" in title.lower() else "Target"
+
+
 def plot_embedding_2d(
     reduced: np.ndarray,
     labels: np.ndarray,
     path: str | Path,
     *,
     title: str,
-    label_name: str = "Label",
+    label_name: str | None = None,
 ) -> Path:
-    """Plot the first two reduced dimensions colored by labels."""
+    """Plot the first two reduced dimensions colored by target or cluster labels."""
     matrix = np.asarray(reduced, dtype=float)
     if matrix.ndim != 2 or matrix.shape[1] < 2:
         raise ValueError("At least two reduced dimensions are required")
@@ -123,7 +129,7 @@ def plot_embedding_2d(
     ax.set_xlabel("Component 1")
     ax.set_ylabel("Component 2")
     ax.set_title(title)
-    fig.colorbar(scatter, ax=ax, label=label_name)
+    fig.colorbar(scatter, ax=ax, label=_embedding_label(title, label_name))
     return _finish(fig, path)
 
 
@@ -133,9 +139,9 @@ def plot_embedding_3d(
     path: str | Path,
     *,
     title: str,
-    label_name: str = "Label",
+    label_name: str | None = None,
 ) -> Path:
-    """Plot the first three reduced dimensions colored by labels."""
+    """Plot the first three reduced dimensions colored by target or cluster labels."""
     matrix = np.asarray(reduced, dtype=float)
     if matrix.ndim != 2 or matrix.shape[1] < 3:
         raise ValueError("At least three reduced dimensions are required")
@@ -148,7 +154,12 @@ def plot_embedding_3d(
     ax.set_ylabel("Component 2")
     ax.set_zlabel("Component 3")
     ax.set_title(title)
-    fig.colorbar(scatter, ax=ax, label=label_name, shrink=0.7)
+    fig.colorbar(
+        scatter,
+        ax=ax,
+        label=_embedding_label(title, label_name),
+        shrink=0.7,
+    )
     return _finish(fig, path)
 
 
