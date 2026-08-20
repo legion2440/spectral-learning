@@ -1,6 +1,8 @@
 import numpy as np
 
 from models.pca_model import PCAFromScratch
+from models.svd_model import SVDFromScratch
+from utils.matrix_operations import canonicalize_component_signs
 from utils.metrics import reconstruction_metrics
 
 
@@ -34,3 +36,25 @@ def test_pca_save_load_roundtrip(tmp_path) -> None:
     path = model.save(tmp_path / "pca.npz")
     loaded = PCAFromScratch.load(path)
     assert np.allclose(model.transform(matrix), loaded.transform(matrix))
+
+
+def test_component_sign_canonicalization_is_idempotent() -> None:
+    components = np.array(
+        [
+            [-0.2, 0.9, 0.1],
+            [0.3, -0.4, -0.8],
+            [-1.0, 0.2, 0.1],
+        ]
+    )
+    canonical = canonicalize_component_signs(components)
+    assert np.allclose(canonical, canonicalize_component_signs(canonical))
+    pivots = np.argmax(np.abs(canonical), axis=1)
+    assert np.all(canonical[np.arange(len(canonical)), pivots] >= 0.0)
+
+
+def test_pca_and_svd_components_align_on_separated_spectrum() -> None:
+    rng = np.random.default_rng(19)
+    matrix = rng.normal(size=(300, 4)) * np.array([7.0, 4.0, 2.0, 0.5])
+    pca = PCAFromScratch(n_components=4).fit(matrix)
+    svd = SVDFromScratch(n_components=4).fit(matrix)
+    assert np.allclose(pca.components_, svd.components_, atol=1e-8, rtol=1e-8)
