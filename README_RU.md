@@ -1,6 +1,6 @@
 # Spectral Learning
 
-Production-oriented toolkit для уменьшения размерности на основе **PCA и SVD, собранных из базовых NumPy-примитивов**. Проект включает подготовку табличных данных, выбор числа компонент по сохранённой дисперсии, reconstruction, оценку кластеризации, переиспользуемые train/inference-артефакты, интерпретируемые визуализации, nonlinear t-SNE/UMAP эксперименты и спектральные применения к изображениям и сигналам.
+Production-oriented toolkit для уменьшения размерности на основе **PCA и SVD, собранных из базовых NumPy-примитивов**. Проект включает подготовку табличных данных, выбор числа компонент по сохранённой дисперсии, held-out reconstruction diagnostics, оценку кластеризации, переиспользуемые train/inference-артефакты, интерпретируемые визуализации, nonlinear t-SNE/UMAP эксперименты и спектральные применения к изображениям и сигналам.
 
 По умолчанию используется UCI Wine Quality, но CLI принимает и другие числовые CSV-датасеты.
 
@@ -86,7 +86,7 @@ python main.py compare \
 - `sklearn.decomposition.PCA`, `TruncatedSVD` и SciPy SVD helpers не используются;
 - scikit-learn в основном PCA/SVD pipeline применяется только для K-means и evaluation metrics.
 
-По умолчанию preprocessing и reducer fit-ятся на детерминированной train-части данных, после чего весь датасет только трансформируется. Это воспроизводит разделение, необходимое при обработке будущих production-данных.
+По умолчанию preprocessing и reducer fit-ятся на детерминированной train-части данных, после чего весь датасет только трансформируется. Held-out строки используются для reconstruction generalization diagnostics без повторного fit. Это воспроизводит разделение, необходимое при обработке будущих production-данных.
 
 ## ✨ Возможности
 
@@ -96,6 +96,7 @@ python main.py compare \
 - SVD reduction вокруг NumPy matrix decomposition;
 - `fit`, `transform`, `fit_transform`, `inverse_transform`;
 - ручное число компонент или автоматический variance threshold;
+- детерминированная sign convention для стабильных loadings/embeddings;
 - explained variance и cumulative explained variance;
 - reconstruction MSE и relative Frobenius error;
 - feature loadings для интерпретации компонент.
@@ -103,6 +104,8 @@ python main.py compare \
 ### Data pipeline
 
 - автоматическое определение разделителя CSV;
+- проверка duplicate headers до того, как pandas успеет переименовать их;
+- понятная обработка пустых и malformed CSV;
 - проверка target;
 - удаление дубликатов строк в training dataset;
 - поиск числовых признаков;
@@ -122,7 +125,10 @@ python main.py compare \
 - Davies-Bouldin Score;
 - Adjusted Rand Index при наличии reference labels;
 - Normalized Mutual Information при наличии reference labels;
-- reconstruction error при разных количествах компонент.
+- diagnostic clustering sweep `k=2..10` для проверки устойчивости выводов по target;
+- сравнение `wine_type` separability: original space → PCA 2D → SVD 2D;
+- train/test reconstruction metrics и generalization gap;
+- reconstruction curve по nested prefixes одного train-fitted basis для каждого метода.
 
 ### Reproducibility
 
@@ -196,8 +202,9 @@ python main.py compare \
 4. сортировка eigenpairs по убыванию eigenvalue;
 5. перевод eigenvalues в explained-variance ratios;
 6. выбор числа сохраняемых компонент;
-7. projection центрированных данных на выбранные eigenvectors;
-8. reconstruction через `inverse_transform`.
+7. применение детерминированной sign convention;
+8. projection центрированных данных на выбранные eigenvectors;
+9. reconstruction через `inverse_transform`.
 
 ### SVD
 
@@ -207,10 +214,11 @@ python main.py compare \
 2. `U, Σ, Vᵀ = numpy.linalg.svd(X)`;
 3. преобразование singular values во вклад в дисперсию;
 4. выбор top-k right-singular vectors;
-5. projection в latent space;
-6. low-rank reconstruction.
+5. ту же sign convention, что и PCA;
+6. projection в latent space;
+7. low-rank reconstruction.
 
-Для центрированных данных PCA eigenvectors и SVD right-singular vectors описывают одно principal subspace с точностью до знака и численных деталей. Наличие двух реализаций позволяет увидеть эту связь непосредственно.
+Для центрированных данных PCA eigenvectors и SVD right-singular vectors описывают одно principal subspace с точностью до floating-point эффектов и допустимых вращений внутри degenerate eigenspaces. Обычная sign ambiguity нормализуется для стабильной визуальной подачи.
 
 Подробная математика и определения метрик находятся в [docs/METHODS.md](docs/METHODS.md).
 
@@ -239,13 +247,15 @@ python main.py compare \
   --variance-threshold 0.95
 ```
 
-Датасет без target:
+Для действительно unlabeled-датасета:
 
 ```bash
 python main.py compare \
   --input data/raw/custom.csv \
   --target none
 ```
+
+`--target none` означает, что **ни один столбец не резервируется как target**. Если использовать этот режим на размеченном числовом датасете вроде Wine Quality, бывший числовой target (`quality`) станет обычной feature. Используйте режим только если именно это и требуется по схеме данных.
 
 ## ⚙️ CLI-сценарии
 
@@ -280,7 +290,7 @@ python main.py compare \
   --seed 42
 ```
 
-Обе модели получают одинаковый preprocessing state и одну train-подвыборку, поэтому сравнение остаётся корректным.
+Обе модели получают одинаковый preprocessing state и одну train-подвыборку, поэтому сравнение остаётся корректным. `--clusters` остаётся основной пользовательской настройкой кластеризации; отдельно выполняется diagnostic sweep `k=2..10` без выбора post-hoc «лучшего» k.
 
 ### Трансформировать новые данные
 
@@ -304,18 +314,24 @@ python main.py transform \
 - PCA 2D/3D embeddings при достаточном числе компонент;
 - SVD 2D/3D embeddings;
 - heatmaps component loadings;
-- reconstruction error vs component count;
+- train/test reconstruction error vs component count + numeric JSON;
+- target clustering sweep (`k=2..10`) + ARI plot при наличии target;
+- `wine_type` class counts и original-vs-2D separability metrics;
 - target distribution;
 - feature distributions;
 - correlation heatmap;
 - отдельные cluster views для red/white wine при наличии `wine_type`;
-- JSON с strongest signed loadings для каждой компоненты.
+- JSON с strongest signed loadings и paired PCA/SVD component cosine similarities.
 
-Размерность обосновывается либо явным `--components`, либо минимальным количеством компонент, которое достигает `--variance-threshold`.
+Размерность обосновывается либо явным `--components`, либо минимальным количеством компонент, которое достигает `--variance-threshold`. Default 95% — это reconstruction/information-retention objective. Отдельный 2D visualization/separability experiment отвечает на другой downstream-вопрос и не заменяет этот threshold.
 
-Для unsupervised dimensionality reduction классический supervised overfitting не является основной проблемой. Здесь контролируются более релевантные риски: leakage между train/inference, нестабильный выбор компонент, чрезмерная размерность и information loss. Fit-статистики считаются только по настроенной train-части, если явно не указать `--train-fraction 1.0`.
+Если для 95% нужно сохранить большую часть исходных dimensions, это честно интерпретируется как limited linear compressibility, а не маскируется снижением порога после получения результата.
 
-Числовые результаты не захардкожены в документации. Они вычисляются локально и записываются в `metrics.json`.
+Для unsupervised dimensionality reduction классический supervised overfitting не является основной проблемой. Здесь контролируются более релевантные риски: leakage между train/inference, нестабильный выбор компонент, чрезмерная размерность и information loss. Fit-статистики считаются только по настроенной train-части, если явно не указать `--train-fraction 1.0`. Held-out reconstruction и train/test MSE gap дают прямую проверку поведения train-fitted subspace на unseen rows.
+
+Wine `quality` является ordinal target, тогда как ARI/NMI трактуют значения как nominal classes. Поэтому clustering sweep показывает устойчивость восстановления именно точного partition по quality, а не ordinal predictive quality.
+
+Числовые результаты не захардкожены в документации. Они вычисляются локально и записываются в JSON artifacts.
 
 ## 📦 Переиспользуемые артефакты
 
@@ -337,7 +353,7 @@ artifacts/runs/20260819T184500Z_pca/
 └── target_distribution.png
 ```
 
-Comparison run дополнительно сохраняет обе модели, PCA/SVD plots, reconstruction curve и subset cluster views.
+Comparison run дополнительно сохраняет обе модели, PCA/SVD plots, `reconstruction_curve.json`, `quality_clustering_sweep.json`, `wine_type_separability.json` при наличии соответствующих данных и subset cluster views.
 
 NPZ хранит numeric arrays и JSON metadata и читается с `allow_pickle=False`.
 
@@ -412,8 +428,11 @@ pytest -q
 Проверяются:
 
 - PCA shapes, variance ordering, reconstruction и persistence;
+- deterministic component-sign canonicalization и PCA/SVD alignment на separated spectrum;
 - SVD shapes, explained variance, reconstruction и persistence;
 - preprocessing imputation, constant features, schema checks и persistence;
+- duplicate CSV headers и empty CSV error handling;
+- nested train/test reconstruction curves и PCA/SVD reconstruction equivalence;
 - end-to-end reduction + K-means;
 - sanity exact t-SNE output;
 - image compression и signal-denoising primitives.
@@ -474,6 +493,7 @@ spectral-learning/
 - Missing и infinite numeric values нормализуются перед median imputation.
 - Constant features получают безопасный scale `1.0` и фиксируются в metadata.
 - Явный `n_components` имеет приоритет над variance threshold.
+- PCA/SVD component signs canonicalized для детерминированной подачи; degenerate eigenspaces всё равно допускают эквивалентные rotated bases.
 - Generated datasets, models, metrics и plots игнорируются Git.
 - Exact t-SNE и UMAP остаются exploratory paths и отделены от persisted PCA/SVD inference.
 - Runtime numbers зависят от локального датасета, versions и hardware, поэтому генерируются при запуске, а не записываются в README заранее.
