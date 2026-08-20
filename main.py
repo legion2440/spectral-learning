@@ -12,6 +12,7 @@ from workflows import (
     nonlinear_workflow,
     train_workflow,
     transform_workflow,
+    umap_workflow,
 )
 
 
@@ -68,6 +69,15 @@ def build_parser() -> argparse.ArgumentParser:
     nonlinear.add_argument("--iterations", type=int, default=750)
     nonlinear.add_argument("--seed", type=int, default=42)
 
+    umap = subparsers.add_parser("umap", help="Run optional UMAP visualization")
+    umap.add_argument("--input", required=True)
+    umap.add_argument("--target", default="quality", type=_target)
+    umap.add_argument("--output", default="artifacts")
+    umap.add_argument("--max-samples", type=int, default=5000)
+    umap.add_argument("--neighbors", type=int, default=15)
+    umap.add_argument("--min-dist", type=float, default=0.1)
+    umap.add_argument("--seed", type=int, default=42)
+
     image = subparsers.add_parser("bonus-image", help="Run SVD image compression")
     image.add_argument("--input", required=True)
     image.add_argument("--ranks", type=_ranks, default=[5, 20, 50, 100])
@@ -75,7 +85,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     signal = subparsers.add_parser("bonus-signal", help="Run SVD signal denoising")
     signal.add_argument("--output", default="artifacts/signal_denoising")
-    signal.add_argument("--rank", type=int, default=2)
+    signal.add_argument("--rank", type=int, default=4)
     signal.add_argument("--samples", type=int, default=1000)
     signal.add_argument("--noise-std", type=float, default=0.45)
     signal.add_argument("--seed", type=int, default=42)
@@ -122,6 +132,16 @@ def main() -> None:
             max_samples=args.max_samples,
             perplexity=args.perplexity,
             iterations=args.iterations,
+            random_state=args.seed,
+        )
+    elif args.command == "umap":
+        result = umap_workflow(
+            args.input,
+            target=args.target,
+            output_root=args.output,
+            max_samples=args.max_samples,
+            n_neighbors=args.neighbors,
+            min_dist=args.min_dist,
             random_state=args.seed,
         )
     elif args.command == "bonus-image":
