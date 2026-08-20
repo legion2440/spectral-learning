@@ -24,6 +24,29 @@ def as_float_matrix(
     return matrix
 
 
+def canonicalize_component_signs(components: np.ndarray) -> np.ndarray:
+    """Orient each component so its largest absolute loading is non-negative.
+
+    Eigenvectors and singular vectors are only defined up to a global sign. A stable
+    sign convention makes persisted models, loadings and embeddings easier to compare
+    without changing the represented subspace.
+    """
+    matrix = np.asarray(components, dtype=float)
+    if matrix.ndim != 2:
+        raise ValueError("components must be a 2D matrix")
+    if matrix.shape[1] == 0:
+        raise ValueError("components must contain at least one feature")
+    if not np.isfinite(matrix).all():
+        raise ValueError("components contain NaN or infinite values")
+
+    canonical = matrix.copy()
+    pivot_indices = np.argmax(np.abs(canonical), axis=1)
+    pivot_values = canonical[np.arange(len(canonical)), pivot_indices]
+    signs = np.where(pivot_values < 0.0, -1.0, 1.0)
+    canonical *= signs[:, None]
+    return canonical
+
+
 def choose_component_count(
     *,
     max_components: int,
