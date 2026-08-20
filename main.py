@@ -7,12 +7,12 @@ from pathlib import Path
 
 from experiments.image_compression import run_image_compression
 from experiments.signal_denoising import run_signal_denoising
+from experiments.umap_embedding import run_umap_embedding
 from workflows import (
     compare_workflow,
     nonlinear_workflow,
     train_workflow,
     transform_workflow,
-    umap_workflow,
 )
 
 
@@ -135,7 +135,7 @@ def main() -> None:
             random_state=args.seed,
         )
     elif args.command == "umap":
-        result = umap_workflow(
+        result = run_umap_embedding(
             args.input,
             target=args.target,
             output_root=args.output,
