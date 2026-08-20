@@ -69,9 +69,17 @@ def plot_cumulative_variance(
 ) -> Path:
     """Plot cumulative explained variance for one or more reducers."""
     fig, ax = plt.subplots(figsize=(8, 5))
-    for label, values in curves.items():
+    styles = (("-", "o"), ("--", "s"), (":", "^"), ("-.", "D"))
+    for index, (label, values) in enumerate(curves.items()):
         cumulative = np.asarray(values, dtype=float)
-        ax.plot(np.arange(1, len(cumulative) + 1), cumulative, marker="o", label=label)
+        linestyle, marker = styles[index % len(styles)]
+        ax.plot(
+            np.arange(1, len(cumulative) + 1),
+            cumulative,
+            linestyle=linestyle,
+            marker=marker,
+            label=label,
+        )
     if threshold is not None:
         ax.axhline(threshold, linestyle="--", label=f"target {threshold:.0%}")
     ax.set_xlabel("Number of components")
@@ -88,6 +96,7 @@ def plot_embedding_2d(
     path: str | Path,
     *,
     title: str,
+    label_name: str = "Label",
 ) -> Path:
     """Plot the first two reduced dimensions colored by labels."""
     matrix = np.asarray(reduced, dtype=float)
@@ -98,7 +107,7 @@ def plot_embedding_2d(
     ax.set_xlabel("Component 1")
     ax.set_ylabel("Component 2")
     ax.set_title(title)
-    fig.colorbar(scatter, ax=ax, label="Label")
+    fig.colorbar(scatter, ax=ax, label=label_name)
     return _finish(fig, path)
 
 
@@ -108,6 +117,7 @@ def plot_embedding_3d(
     path: str | Path,
     *,
     title: str,
+    label_name: str = "Label",
 ) -> Path:
     """Plot the first three reduced dimensions colored by labels."""
     matrix = np.asarray(reduced, dtype=float)
@@ -122,7 +132,7 @@ def plot_embedding_3d(
     ax.set_ylabel("Component 2")
     ax.set_zlabel("Component 3")
     ax.set_title(title)
-    fig.colorbar(scatter, ax=ax, label="Label", shrink=0.7)
+    fig.colorbar(scatter, ax=ax, label=label_name, shrink=0.7)
     return _finish(fig, path)
 
 
@@ -162,8 +172,8 @@ def plot_reconstruction_curve(
 ) -> Path:
     """Compare reconstruction MSE as retained dimensionality increases."""
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(component_counts, pca_errors, marker="o", label="PCA")
-    ax.plot(component_counts, svd_errors, marker="o", label="SVD")
+    ax.plot(component_counts, pca_errors, linestyle="-", marker="o", label="PCA")
+    ax.plot(component_counts, svd_errors, linestyle="--", marker="s", label="SVD")
     ax.set_xlabel("Number of components")
     ax.set_ylabel("Reconstruction MSE")
     ax.set_title("Reconstruction error vs dimensionality")
