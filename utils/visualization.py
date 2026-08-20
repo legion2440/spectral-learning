@@ -164,6 +164,14 @@ def plot_embedding_2d(
     matrix = np.asarray(reduced, dtype=float)
     if matrix.ndim != 2 or matrix.shape[1] < 2:
         raise ValueError("At least two reduced dimensions are required")
+
+    title_key = title.lower()
+    if x_label == "Component 1" and y_label == "Component 2":
+        if "t-sne" in title_key:
+            x_label, y_label = "t-SNE 1", "t-SNE 2"
+        elif "umap" in title_key:
+            x_label, y_label = "UMAP 1", "UMAP 2"
+
     fig, ax = plt.subplots(figsize=(8, 6))
     scatter = ax.scatter(matrix[:, 0], matrix[:, 1], c=np.asarray(labels), s=18, alpha=0.75)
     ax.set_xlabel(x_label)
