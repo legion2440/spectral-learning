@@ -81,27 +81,49 @@ def plot_cumulative_variance(
     """Plot cumulative explained variance for one or more reducers."""
     fig, ax = plt.subplots(figsize=(8, 5))
     overlap = _curves_overlap(curves)
-    styles = (("-", "o"), ("--", "s"), (":", "^"), ("-.", "D"))
+
     for index, (label, values) in enumerate(curves.items()):
         cumulative = np.asarray(values, dtype=float)
-        linestyle, marker = styles[index % len(styles)]
-        if overlap and label == "SVD":
-            linestyle = "None"
-        ax.plot(
-            np.arange(1, len(cumulative) + 1),
-            cumulative,
-            linestyle=linestyle,
-            marker=marker,
-            linewidth=2.0,
-            markersize=6,
-            label=label,
-        )
+        x = np.arange(1, len(cumulative) + 1)
+        if label == "PCA":
+            ax.plot(
+                x,
+                cumulative,
+                linestyle="-",
+                marker="o",
+                linewidth=2.0,
+                markersize=10 if overlap else 7,
+                zorder=2,
+                label=label,
+            )
+        elif label == "SVD":
+            ax.plot(
+                x,
+                cumulative,
+                linestyle="--",
+                marker="s",
+                linewidth=2.0,
+                markersize=5.5 if overlap else 7,
+                zorder=3,
+                label=label,
+            )
+        else:
+            ax.plot(
+                x,
+                cumulative,
+                linestyle=("-", "--", ":", "-.")[index % 4],
+                marker=("o", "s", "^", "D")[index % 4],
+                linewidth=2.0,
+                label=label,
+            )
+
     if threshold is not None:
         ax.axhline(
             threshold,
             linestyle=":",
             linewidth=1.8,
-            color="0.35",
+            color="0.45",
+            zorder=1,
             label=f"target {threshold:.0%}",
         )
     if overlap:
@@ -226,16 +248,18 @@ def plot_reconstruction_curve(
         linestyle="-",
         marker="o",
         linewidth=2.0,
-        markersize=6,
+        markersize=10 if overlap else 7,
+        zorder=2,
         label="PCA",
     )
     ax.plot(
         component_counts,
         svd_errors,
-        linestyle="None" if overlap else "--",
+        linestyle="--",
         marker="s",
         linewidth=2.0,
-        markersize=6,
+        markersize=5.5 if overlap else 7,
+        zorder=3,
         label="SVD",
     )
     if overlap:
