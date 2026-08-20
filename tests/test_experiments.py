@@ -1,6 +1,9 @@
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.image_compression import compress_image_svd
+from experiments.image_compression import compress_image_svd, run_image_compression
 from experiments.signal_denoising import denoise_signal_svd, generate_signal
 
 
@@ -10,6 +13,21 @@ def test_image_reconstruction_shape() -> None:
     reconstructed, metrics = compress_image_svd(image, rank=5)
     assert reconstructed.shape == image.shape
     assert metrics["mse"] >= 0.0
+
+
+def test_uint8_image_workflow_saves_reconstructions(tmp_path: Path) -> None:
+    rng = np.random.default_rng(7)
+    image = rng.integers(0, 256, size=(24, 20, 3), dtype=np.uint8)
+    source = tmp_path / "source.jpg"
+    output = tmp_path / "compressed"
+    plt.imsave(source, image)
+
+    result = run_image_compression(source, [3, 8], output)
+
+    assert result == output
+    assert (output / "rank_3.png").is_file()
+    assert (output / "rank_8.png").is_file()
+    assert (output / "metrics.json").is_file()
 
 
 def test_signal_denoising_shape_and_finiteness() -> None:
