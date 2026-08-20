@@ -38,6 +38,8 @@ A lower threshold gives a smaller representation and usually larger reconstructi
 
 ## 4. Nonlinear visualization
 
+### Exact NumPy t-SNE
+
 Run:
 
 ```bash
@@ -56,6 +58,26 @@ The exact NumPy t-SNE implementation is deliberately separated from the persiste
 - there is no supported `transform(new_rows)` contract.
 
 Use it to inspect nonlinear neighborhoods, not to replace the production PCA/SVD transform pipeline.
+
+### UMAP
+
+UMAP is an optional external dependency so the core PCA/SVD environment remains lightweight. Install it with:
+
+```bash
+python -m pip install -r requirements-extra.txt
+```
+
+Then run:
+
+```bash
+python main.py umap \
+  --input data/raw/wine_quality.csv \
+  --max-samples 5000 \
+  --neighbors 15 \
+  --min-dist 0.1
+```
+
+The UMAP workflow writes a two-dimensional embedding, its parameters and the deterministic sample configuration. Like t-SNE, this experiment is used for nonlinear visualization and comparison rather than as the persisted production reducer in this repository.
 
 ## 5. Image compression
 
@@ -81,10 +103,12 @@ The estimate intentionally ignores image-codec headers, quantization and entropy
 Run:
 
 ```bash
-python main.py bonus-signal --rank 2 --samples 1000 --noise-std 0.45
+python main.py bonus-signal --rank 4 --samples 1000 --noise-std 0.45
 ```
 
 The experiment creates a deterministic two-frequency signal plus Gaussian noise. A sliding window turns the 1D sequence into a Hankel trajectory matrix. SVD keeps a low-rank approximation and diagonal averaging maps the matrix back into a 1D series.
+
+Each real sinusoidal component contributes a two-dimensional Hankel subspace (sine and cosine phase directions), so the default two-frequency synthetic signal uses rank 4. Lower rank can remove genuine signal structure; higher rank progressively admits noise directions.
 
 The output compares:
 
@@ -105,6 +129,7 @@ For a comparable local rerun, keep fixed:
 - `--train-fraction`;
 - `--variance-threshold` or `--components`;
 - K-means cluster count;
-- t-SNE sample size/perplexity/iterations for nonlinear experiments.
+- t-SNE sample size/perplexity/iterations for nonlinear experiments;
+- UMAP sample size/neighbors/min-dist for nonlinear experiments.
 
 The generated JSON files are the source of truth for the actual local measurements.
