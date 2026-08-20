@@ -78,10 +78,26 @@ def plot_cumulative_variance(
             cumulative,
             linestyle=linestyle,
             marker=marker,
+            linewidth=2.0,
             label=label,
         )
     if threshold is not None:
         ax.axhline(threshold, linestyle="--", label=f"target {threshold:.0%}")
+    if "PCA" in curves and "SVD" in curves:
+        pca_values = np.asarray(curves["PCA"], dtype=float)
+        svd_values = np.asarray(curves["SVD"], dtype=float)
+        if pca_values.shape == svd_values.shape and np.allclose(
+            pca_values, svd_values, rtol=1e-10, atol=1e-12
+        ):
+            ax.text(
+                0.98,
+                0.04,
+                "PCA and SVD curves overlap within numerical precision",
+                transform=ax.transAxes,
+                ha="right",
+                va="bottom",
+                fontsize=9,
+            )
     ax.set_xlabel("Number of components")
     ax.set_ylabel("Cumulative explained variance")
     ax.set_ylim(0.0, 1.02)
@@ -172,8 +188,36 @@ def plot_reconstruction_curve(
 ) -> Path:
     """Compare reconstruction MSE as retained dimensionality increases."""
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(component_counts, pca_errors, linestyle="-", marker="o", label="PCA")
-    ax.plot(component_counts, svd_errors, linestyle="--", marker="s", label="SVD")
+    ax.plot(
+        component_counts,
+        pca_errors,
+        linestyle="-",
+        marker="o",
+        linewidth=2.0,
+        label="PCA",
+    )
+    ax.plot(
+        component_counts,
+        svd_errors,
+        linestyle="--",
+        marker="s",
+        linewidth=2.0,
+        label="SVD",
+    )
+    pca_values = np.asarray(pca_errors, dtype=float)
+    svd_values = np.asarray(svd_errors, dtype=float)
+    if pca_values.shape == svd_values.shape and np.allclose(
+        pca_values, svd_values, rtol=1e-10, atol=1e-12
+    ):
+        ax.text(
+            0.98,
+            0.92,
+            "PCA and SVD curves overlap within numerical precision",
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=9,
+        )
     ax.set_xlabel("Number of components")
     ax.set_ylabel("Reconstruction MSE")
     ax.set_title("Reconstruction error vs dimensionality")
