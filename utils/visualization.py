@@ -239,40 +239,105 @@ def plot_component_loadings(
     return _finish(fig, path)
 
 
+def plot_metric_sweep(
+    x_values: Sequence[int],
+    curves: Mapping[str, Sequence[float]],
+    path: str | Path,
+    *,
+    ylabel: str,
+    title: str,
+) -> Path:
+    """Plot one metric across a shared integer sweep for multiple representations."""
+    fig, ax = plt.subplots(figsize=(8, 5))
+    markers = ("o", "s", "^")
+    for index, (label, values) in enumerate(curves.items()):
+        ax.plot(
+            x_values,
+            values,
+            marker=markers[index % len(markers)],
+            linewidth=2.0,
+            label=label,
+        )
+    ax.set_xlabel("K-means cluster count")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.grid(alpha=0.25)
+    ax.legend()
+    return _finish(fig, path)
+
+
 def plot_reconstruction_curve(
     component_counts: Sequence[int],
-    pca_errors: Sequence[float],
-    svd_errors: Sequence[float],
+    pca_train_errors: Sequence[float],
+    svd_train_errors: Sequence[float],
     path: str | Path,
+    *,
+    pca_test_errors: Sequence[float] | None = None,
+    svd_test_errors: Sequence[float] | None = None,
 ) -> Path:
-    """Compare reconstruction MSE as retained dimensionality increases."""
+    """Compare train and held-out reconstruction MSE across retained dimensionality."""
     fig, ax = plt.subplots(figsize=(8, 5))
-    pca_values = np.asarray(pca_errors, dtype=float)
-    svd_values = np.asarray(svd_errors, dtype=float)
-    overlap = pca_values.shape == svd_values.shape and np.allclose(
-        pca_values, svd_values, rtol=1e-10, atol=1e-12
+    pca_train = np.asarray(pca_train_errors, dtype=float)
+    svd_train = np.asarray(svd_train_errors, dtype=float)
+    train_overlap = pca_train.shape == svd_train.shape and np.allclose(
+        pca_train, svd_train, rtol=1e-10, atol=1e-12
     )
-    ax.plot(
+
+    pca_line = ax.plot(
         component_counts,
-        pca_errors,
+        pca_train,
         linestyle="-",
         marker="o",
         linewidth=2.0,
-        markersize=10 if overlap else 7,
+        markersize=10 if train_overlap else 7,
         zorder=2,
-        label="PCA",
-    )
-    ax.plot(
+        label="PCA train",
+    )[0]
+    svd_line = ax.plot(
         component_counts,
-        svd_errors,
+        svd_train,
         linestyle="--",
         marker="s",
         linewidth=2.0,
-        markersize=5.5 if overlap else 7,
+        markersize=5.5 if train_overlap else 7,
         zorder=3,
-        label="SVD",
-    )
-    if overlap:
+        label="SVD train",
+    )[0]
+
+    has_test = pca_test_errors is not None and svd_test_errors is not None
+    test_overlap = False
+    if has_test:
+        pca_test = np.asarray(pca_test_errors, dtype=float)
+        svd_test = np.asarray(svd_test_errors, dtype=float)
+        test_overlap = pca_test.shape == svd_test.shape and np.allclose(
+            pca_test, svd_test, rtol=1e-10, atol=1e-12
+        )
+        ax.plot(
+            component_counts,
+            pca_test,
+            linestyle="-.",
+            marker="o",
+            markerfacecolor="none",
+            linewidth=1.8,
+            markersize=10 if test_overlap else 7,
+            color=pca_line.get_color(),
+            zorder=2,
+            label="PCA test",
+        )
+        ax.plot(
+            component_counts,
+            svd_test,
+            linestyle=":",
+            marker="s",
+            markerfacecolor="none",
+            linewidth=1.8,
+            markersize=5.5 if test_overlap else 7,
+            color=svd_line.get_color(),
+            zorder=3,
+            label="SVD test",
+        )
+
+    if train_overlap and (not has_test or test_overlap):
         ax.text(
             0.98,
             0.92,
@@ -284,7 +349,7 @@ def plot_reconstruction_curve(
         )
     ax.set_xlabel("Number of components")
     ax.set_ylabel("Reconstruction MSE")
-    ax.set_title("Reconstruction error vs dimensionality")
+    ax.set_title("Train/test reconstruction error vs dimensionality")
     ax.grid(alpha=0.25)
     ax.legend()
     return _finish(fig, path)
