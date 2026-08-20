@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +22,28 @@ class DatasetBundle:
     target_name: str | None
 
 
+def _validate_raw_header(source: Path) -> None:
+    """Detect duplicate source headers before pandas can mangle their names."""
+    try:
+        with source.open("r", encoding="utf-8-sig", newline="") as handle:
+            sample = handle.read(65536)
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ValueError(f"Unable to read dataset {source}: {exc}") from exc
+
+    if not sample.strip():
+        raise ValueError("Dataset is empty")
+
+    try:
+        dialect = csv.Sniffer().sniff(sample)
+        header = next(csv.reader(StringIO(sample), dialect))
+    except (csv.Error, StopIteration):
+        return
+
+    names = [str(value).strip() for value in header]
+    if len(set(names)) != len(names):
+        raise ValueError("Dataset contains duplicate column names")
+
+
 def read_table(path: str | Path) -> pd.DataFrame:
     """Read a CSV-like table with automatic delimiter detection."""
     source = Path(path)
@@ -28,9 +52,16 @@ def read_table(path: str | Path) -> pd.DataFrame:
     if not source.is_file():
         raise ValueError(f"Dataset path is not a file: {source}")
 
+    _validate_raw_header(source)
     try:
         frame = pd.read_csv(source, sep=None, engine="python")
-    except (OSError, pd.errors.ParserError, UnicodeDecodeError) as exc:
+    except (
+        OSError,
+        pd.errors.EmptyDataError,
+        pd.errors.ParserError,
+        UnicodeDecodeError,
+        csv.Error,
+    ) as exc:
         raise ValueError(f"Unable to read dataset {source}: {exc}") from exc
 
     if frame.empty:
