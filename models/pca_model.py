@@ -8,7 +8,11 @@ from typing import Self
 
 import numpy as np
 
-from utils.matrix_operations import as_float_matrix, choose_component_count
+from utils.matrix_operations import (
+    as_float_matrix,
+    canonicalize_component_signs,
+    choose_component_count,
+)
 
 
 class PCAFromScratch:
@@ -64,7 +68,7 @@ class PCAFromScratch:
         self.n_samples_seen_ = n_samples
         self.n_features_in_ = n_features
         self.n_components_ = count
-        self.components_ = eigenvectors[:, :count].T
+        self.components_ = canonicalize_component_signs(eigenvectors[:, :count].T)
         self.explained_variance_ = eigenvalues[:count]
         self.explained_variance_ratio_ = all_ratios[:count]
         self.all_explained_variance_ = eigenvalues
