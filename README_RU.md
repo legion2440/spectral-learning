@@ -16,6 +16,7 @@ Production-oriented toolkit для уменьшения размерности �
 - [🍷 Датасет и preprocessing](#-датасет-и-preprocessing)
 - [⚙️ CLI-сценарии](#️-cli-сценарии)
 - [📊 Оценка и интерпретация](#-оценка-и-интерпретация)
+- [🖼️ Эталонные графики](#️-эталонные-графики)
 - [📦 Переиспользуемые артефакты](#-переиспользуемые-артефакты)
 - [🧪 Дополнительные эксперименты](#-дополнительные-эксперименты)
 - [✅ Тесты](#-тесты)
@@ -333,6 +334,30 @@ Wine `quality` является ordinal target, тогда как ARI/NMI тра
 
 Числовые результаты не захардкожены в документации. Они вычисляются локально и записываются в JSON artifacts.
 
+## 🖼️ Эталонные графики
+
+Графики ниже скопированы из одного успешно пройденного локального запуска Wine Quality и служат компактными примерами результата. Точные метрики и конфигурация по-прежнему берутся из сгенерированных JSON artifacts.
+
+### Сохранённая дисперсия
+
+![Сравнение cumulative explained variance для PCA и SVD](docs/figures/variance_comparison.png)
+
+### Held-out reconstruction
+
+![Train/test reconstruction error по числу компонент](docs/figures/reconstruction_curve.png)
+
+### Устойчивость кластеризации quality
+
+![ARI sweep для quality по числу K-means clusters](docs/figures/quality_clustering_sweep.png)
+
+### Линейная 2D-проекция
+
+![PCA 2D projection для Wine Quality](docs/figures/pca_2d.png)
+
+### Нелинейная 2D-проекция
+
+![UMAP embedding для Wine Quality](docs/figures/umap_2d.png)
+
 ## 📦 Переиспользуемые артефакты
 
 Пример структуры training output:
@@ -444,6 +469,7 @@ spectral-learning/
 ├── data/
 │   └── README.md
 ├── docs/
+│   ├── figures/
 │   ├── EXPERIMENTS.md
 │   └── METHODS.md
 ├── experiments/
