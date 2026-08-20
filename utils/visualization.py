@@ -61,6 +61,17 @@ def plot_correlation_heatmap(features: pd.DataFrame, path: str | Path) -> Path:
     return _finish(fig, path)
 
 
+def _curves_overlap(curves: Mapping[str, np.ndarray]) -> bool:
+    """Return whether PCA and SVD curves coincide within numerical precision."""
+    if "PCA" not in curves or "SVD" not in curves:
+        return False
+    pca_values = np.asarray(curves["PCA"], dtype=float)
+    svd_values = np.asarray(curves["SVD"], dtype=float)
+    return pca_values.shape == svd_values.shape and np.allclose(
+        pca_values, svd_values, rtol=1e-10, atol=1e-12
+    )
+
+
 def plot_cumulative_variance(
     curves: Mapping[str, np.ndarray],
     path: str | Path,
@@ -69,35 +80,40 @@ def plot_cumulative_variance(
 ) -> Path:
     """Plot cumulative explained variance for one or more reducers."""
     fig, ax = plt.subplots(figsize=(8, 5))
+    overlap = _curves_overlap(curves)
     styles = (("-", "o"), ("--", "s"), (":", "^"), ("-.", "D"))
     for index, (label, values) in enumerate(curves.items()):
         cumulative = np.asarray(values, dtype=float)
         linestyle, marker = styles[index % len(styles)]
+        if overlap and label == "SVD":
+            linestyle = "None"
         ax.plot(
             np.arange(1, len(cumulative) + 1),
             cumulative,
             linestyle=linestyle,
             marker=marker,
             linewidth=2.0,
+            markersize=6,
             label=label,
         )
     if threshold is not None:
-        ax.axhline(threshold, linestyle="--", label=f"target {threshold:.0%}")
-    if "PCA" in curves and "SVD" in curves:
-        pca_values = np.asarray(curves["PCA"], dtype=float)
-        svd_values = np.asarray(curves["SVD"], dtype=float)
-        if pca_values.shape == svd_values.shape and np.allclose(
-            pca_values, svd_values, rtol=1e-10, atol=1e-12
-        ):
-            ax.text(
-                0.98,
-                0.04,
-                "PCA and SVD curves overlap within numerical precision",
-                transform=ax.transAxes,
-                ha="right",
-                va="bottom",
-                fontsize=9,
-            )
+        ax.axhline(
+            threshold,
+            linestyle=":",
+            linewidth=1.8,
+            color="0.35",
+            label=f"target {threshold:.0%}",
+        )
+    if overlap:
+        ax.text(
+            0.98,
+            0.04,
+            "PCA and SVD curves overlap within numerical precision",
+            transform=ax.transAxes,
+            ha="right",
+            va="bottom",
+            fontsize=9,
+        )
     ax.set_xlabel("Number of components")
     ax.set_ylabel("Cumulative explained variance")
     ax.set_ylim(0.0, 1.02)
@@ -199,27 +215,30 @@ def plot_reconstruction_curve(
 ) -> Path:
     """Compare reconstruction MSE as retained dimensionality increases."""
     fig, ax = plt.subplots(figsize=(8, 5))
+    pca_values = np.asarray(pca_errors, dtype=float)
+    svd_values = np.asarray(svd_errors, dtype=float)
+    overlap = pca_values.shape == svd_values.shape and np.allclose(
+        pca_values, svd_values, rtol=1e-10, atol=1e-12
+    )
     ax.plot(
         component_counts,
         pca_errors,
         linestyle="-",
         marker="o",
         linewidth=2.0,
+        markersize=6,
         label="PCA",
     )
     ax.plot(
         component_counts,
         svd_errors,
-        linestyle="--",
+        linestyle="None" if overlap else "--",
         marker="s",
         linewidth=2.0,
+        markersize=6,
         label="SVD",
     )
-    pca_values = np.asarray(pca_errors, dtype=float)
-    svd_values = np.asarray(svd_errors, dtype=float)
-    if pca_values.shape == svd_values.shape and np.allclose(
-        pca_values, svd_values, rtol=1e-10, atol=1e-12
-    ):
+    if overlap:
         ax.text(
             0.98,
             0.92,
