@@ -1,6 +1,6 @@
 # Spectral Learning
 
-Production-oriented toolkit для уменьшения размерности на основе **PCA и SVD, собранных из базовых NumPy-примитивов**. Проект включает подготовку табличных данных, выбор числа компонент по сохранённой дисперсии, reconstruction, оценку кластеризации, переиспользуемые train/inference-артефакты, интерпретируемые визуализации и дополнительные спектральные эксперименты с изображениями и сигналами.
+Production-oriented toolkit для уменьшения размерности на основе **PCA и SVD, собранных из базовых NumPy-примитивов**. Проект включает подготовку табличных данных, выбор числа компонент по сохранённой дисперсии, reconstruction, оценку кластеризации, переиспользуемые train/inference-артефакты, интерпретируемые визуализации, nonlinear t-SNE/UMAP эксперименты и спектральные применения к изображениям и сигналам.
 
 По умолчанию используется UCI Wine Quality, но CLI принимает и другие числовые CSV-датасеты.
 
@@ -357,6 +357,21 @@ python main.py nonlinear \
 
 Она специально ограничена exploratory sample: exact t-SNE требует O(n²) pairwise work и не поддерживает такой reusable out-of-sample transform, как PCA/SVD.
 
+### UMAP
+
+UMAP вынесен в optional dependency, чтобы базовое окружение PCA/SVD оставалось лёгким:
+
+```bash
+python -m pip install -r requirements-extra.txt
+python main.py umap \
+  --input data/raw/wine_quality.csv \
+  --max-samples 5000 \
+  --neighbors 15 \
+  --min-dist 0.1
+```
+
+Команда сохраняет детерминированный двумерный nonlinear embedding и параметры запуска. UMAP используется здесь для exploratory comparison, а не как persisted production reducer.
+
 ### SVD image compression
 
 ```bash
@@ -371,12 +386,12 @@ python main.py bonus-image \
 
 ```bash
 python main.py bonus-signal \
-  --rank 2 \
+  --rank 4 \
   --samples 1000 \
   --noise-std 0.45
 ```
 
-Synthetic noisy signal преобразуется в Hankel trajectory matrix, затем берётся low-rank SVD approximation, после чего одномерный signal восстанавливается diagonal averaging.
+Synthetic noisy two-frequency signal преобразуется в Hankel trajectory matrix, затем берётся low-rank SVD approximation, после чего одномерный signal восстанавливается diagonal averaging. Default rank равен 4, потому что две реальные синусоиды дают по две фазовые directions в Hankel subspace.
 
 Подробности — в [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md).
 
@@ -415,7 +430,8 @@ spectral-learning/
 ├── experiments/
 │   ├── __init__.py
 │   ├── image_compression.py
-│   └── signal_denoising.py
+│   ├── signal_denoising.py
+│   └── umap_embedding.py
 ├── models/
 │   ├── __init__.py
 │   ├── pca_model.py
@@ -446,6 +462,7 @@ spectral-learning/
 ├── README.md
 ├── README_RU.md
 ├── requirements-dev.txt
+├── requirements-extra.txt
 ├── requirements.txt
 └── workflows.py
 ```
@@ -458,7 +475,7 @@ spectral-learning/
 - Constant features получают безопасный scale `1.0` и фиксируются в metadata.
 - Явный `n_components` имеет приоритет над variance threshold.
 - Generated datasets, models, metrics и plots игнорируются Git.
-- Exact t-SNE остаётся exploratory path и отделена от persisted PCA/SVD inference.
+- Exact t-SNE и UMAP остаются exploratory paths и отделены от persisted PCA/SVD inference.
 - Runtime numbers зависят от локального датасета, versions и hardware, поэтому генерируются при запуске, а не записываются в README заранее.
 
 ## 🧑‍💻 Автор
