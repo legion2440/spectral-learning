@@ -16,6 +16,7 @@ The default dataset is the UCI Wine Quality collection, but the CLI accepts othe
 - [🍷 Dataset and preprocessing](#-dataset-and-preprocessing)
 - [⚙️ CLI workflows](#️-cli-workflows)
 - [📊 Evaluation and interpretation](#-evaluation-and-interpretation)
+- [🖼️ Reference figures](#️-reference-figures)
 - [📦 Reusable artifacts](#-reusable-artifacts)
 - [🧪 Optional experiments](#-optional-experiments)
 - [✅ Tests](#-tests)
@@ -325,11 +326,35 @@ The selected dimensionality is justified either by an explicit `--components` va
 
 If 95% variance requires most of the original dimensions, that is reported as limited linear compressibility rather than hidden by lowering the threshold after the result is known.
 
-For unsupervised dimensionality reduction, conventional supervised overfitting is not the primary failure mode. The repository instead controls the relevant risks: train/inference leakage, unstable component selection, excessive dimensionality and information loss. Fit statistics come only from the configured training subset unless `--train-fraction 1.0` is explicitly requested. Held-out reconstruction and the train/test MSE gap provide direct evidence of how the train-fitted subspace behaves on unseen rows.
+For unsupervised dimensionality reduction, conventional supervised "overfitting" is not the primary failure mode. The repository instead controls the relevant risks: train/inference leakage, unstable component selection, excessive dimensionality and information loss. Fit statistics come only from the configured training subset unless `--train-fraction 1.0` is explicitly requested. Held-out reconstruction and the train/test MSE gap provide direct evidence of how the train-fitted subspace behaves on unseen rows.
 
 Wine `quality` is ordinal, while ARI/NMI treat target values as nominal categories. The target clustering sweep therefore measures recovery of the exact quality partition across cluster counts; it is not an ordinal prediction score.
 
 No numeric result tables are hard-coded into the repository. Measurements are generated from the local run and stored in JSON artifacts.
+
+## 🖼️ Reference figures
+
+The figures below are copied from one successful local Wine Quality run and are kept as lightweight documentation examples. Generated JSON artifacts remain the source of truth for exact metrics and configuration.
+
+### Explained variance
+
+![PCA and SVD cumulative explained variance](docs/figures/variance_comparison.png)
+
+### Held-out reconstruction
+
+![Train/test reconstruction error across retained dimensionality](docs/figures/reconstruction_curve.png)
+
+### Quality clustering stability
+
+![Quality clustering ARI sweep across K-means cluster counts](docs/figures/quality_clustering_sweep.png)
+
+### Linear 2D projection
+
+![PCA two-dimensional Wine Quality projection](docs/figures/pca_2d.png)
+
+### Nonlinear 2D projection
+
+![UMAP nonlinear Wine Quality embedding](docs/figures/umap_2d.png)
 
 ## 📦 Reusable artifacts
 
@@ -442,6 +467,7 @@ spectral-learning/
 ├── data/
 │   └── README.md
 ├── docs/
+│   ├── figures/
 │   ├── EXPERIMENTS.md
 │   └── METHODS.md
 ├── experiments/
