@@ -94,7 +94,9 @@ so PCA eigenvectors and SVD right-singular vectors span the same principal direc
 variance_i = σ_i² / (n - 1)
 ```
 
-This is why the PCA and centered-SVD variance curves should be closely related while still exercising two different decomposition routes.
+With the same centered input, the two routes are therefore expected to produce the same cumulative explained-variance and optimal low-rank reconstruction curves up to floating-point precision. The comparison plots intentionally keep both series visible with different line styles and annotate numerical overlap instead of treating it as a missing result.
+
+Individual component vectors may still appear with opposite signs. Eigenvectors and singular vectors are defined only up to multiplication by `-1`, so such sign flips represent the same axis and do not change the subspace, explained variance or reconstruction.
 
 ## 5. Explained variance and choosing k
 
@@ -118,6 +120,8 @@ The CLI supports two policies:
 - automatic `--variance-threshold t`.
 
 Automatic selection chooses the smallest `k` with `R_k >= t`. This makes dimensionality selection traceable instead of picking a two-dimensional representation only because it is easy to plot.
+
+A high variance threshold can legitimately retain most of the original features. That outcome should be reported as evidence that the dataset does not support aggressive linear compression at the requested information-retention level, rather than forcing a smaller `k` for presentation purposes.
 
 ## 6. Reconstruction metrics
 
