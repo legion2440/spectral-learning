@@ -1,6 +1,6 @@
 # Spectral Learning
 
-A production-oriented dimensionality-reduction toolkit built around **PCA and SVD implemented from first principles with NumPy building blocks**. The project covers tabular preprocessing, variance-based component selection, reconstruction, clustering evaluation, reusable train/inference artifacts, interpretable visualizations, and optional spectral experiments for images and signals.
+A production-oriented dimensionality-reduction toolkit built around **PCA and SVD implemented from first principles with NumPy building blocks**. The project covers tabular preprocessing, variance-based component selection, reconstruction, clustering evaluation, reusable train/inference artifacts, interpretable visualizations, nonlinear t-SNE/UMAP experiments, and spectral applications for images and signals.
 
 The default dataset is the UCI Wine Quality collection, but the CLI accepts other numerical CSV datasets with the same workflow.
 
@@ -357,6 +357,21 @@ python main.py nonlinear \
 
 It is intentionally bounded to exploratory samples because exact t-SNE requires O(n²) pairwise work and does not provide the reusable out-of-sample transform contract of PCA/SVD.
 
+### UMAP
+
+UMAP is kept as an optional dependency so the core environment remains lightweight:
+
+```bash
+python -m pip install -r requirements-extra.txt
+python main.py umap \
+  --input data/raw/wine_quality.csv \
+  --max-samples 5000 \
+  --neighbors 15 \
+  --min-dist 0.1
+```
+
+The command saves a deterministic two-dimensional nonlinear embedding and its configuration. It is used as an exploratory comparison rather than as the persisted production reducer.
+
 ### SVD image compression
 
 ```bash
@@ -371,12 +386,12 @@ Each rank produces a reconstructed image and reports MSE, PSNR and an estimated 
 
 ```bash
 python main.py bonus-signal \
-  --rank 2 \
+  --rank 4 \
   --samples 1000 \
   --noise-std 0.45
 ```
 
-The experiment embeds a synthetic noisy signal into a Hankel trajectory matrix, keeps a low-rank SVD approximation and reconstructs the one-dimensional signal by diagonal averaging.
+The experiment embeds a synthetic noisy two-frequency signal into a Hankel trajectory matrix, keeps a low-rank SVD approximation and reconstructs the one-dimensional signal by diagonal averaging. The default rank is 4 because two real sinusoidal components require two phase directions each in the Hankel subspace.
 
 See [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) for interpretation guidance.
 
@@ -415,7 +430,8 @@ spectral-learning/
 ├── experiments/
 │   ├── __init__.py
 │   ├── image_compression.py
-│   └── signal_denoising.py
+│   ├── signal_denoising.py
+│   └── umap_embedding.py
 ├── models/
 │   ├── __init__.py
 │   ├── pca_model.py
@@ -446,6 +462,7 @@ spectral-learning/
 ├── README.md
 ├── README_RU.md
 ├── requirements-dev.txt
+├── requirements-extra.txt
 ├── requirements.txt
 └── workflows.py
 ```
@@ -458,7 +475,7 @@ spectral-learning/
 - Constant features receive a safe scale of `1.0` and are reported in metadata.
 - Explicit `n_components` takes precedence over the variance threshold.
 - Generated datasets, models, metrics and plots are ignored by Git; source code and documentation remain clean.
-- Exact t-SNE is exploratory only; it is deliberately separate from persisted PCA/SVD inference.
+- Exact t-SNE and UMAP are exploratory only; they are deliberately separate from persisted PCA/SVD inference.
 - Runtime numbers depend on the local dataset, package versions and hardware and are therefore generated rather than embedded in documentation.
 
 ## 🧑‍💻 Author
