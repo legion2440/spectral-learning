@@ -250,14 +250,24 @@ def plot_metric_sweep(
     """Plot one metric across a shared integer sweep for multiple representations."""
     fig, ax = plt.subplots(figsize=(8, 5))
     markers = ("o", "s", "^")
+    all_values: list[float] = []
     for index, (label, values) in enumerate(curves.items()):
+        numeric_values = np.asarray(values, dtype=float)
+        all_values.extend(numeric_values[np.isfinite(numeric_values)].tolist())
         ax.plot(
             x_values,
-            values,
+            numeric_values,
             marker=markers[index % len(markers)],
             linewidth=2.0,
             label=label,
         )
+    if ylabel == "Adjusted Rand Index" and all_values:
+        minimum = min(all_values)
+        maximum = max(all_values)
+        if minimum >= 0.0:
+            ax.set_ylim(0.0, max(0.05, maximum * 1.1))
+        else:
+            ax.set_ylim(min(-0.05, minimum * 1.1), max(0.05, maximum * 1.1))
     ax.set_xlabel("K-means cluster count")
     ax.set_ylabel(ylabel)
     ax.set_title(title)
